@@ -5,7 +5,6 @@ public class User {
     String uid;
     String emailId;
     String publicKey;
-    String modulus;
 
 
     public User(){
@@ -28,9 +27,6 @@ public class User {
     }
     */
 
-    public String getModulus() {
-        return modulus;
-    }
 
     public String getDisplayName() {
         return displayName;

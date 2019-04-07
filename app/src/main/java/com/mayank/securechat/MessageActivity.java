@@ -2,6 +2,7 @@ package com.mayank.securechat;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -27,6 +28,7 @@ import com.google.firebase.udacity.friendlychat.R;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.FileWriter;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -37,6 +39,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -255,21 +258,68 @@ public class MessageActivity extends AppCompatActivity {
         return decrypted;
     }
 
+    ValueEventListener valueEventListener=new ValueEventListener() {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            if(messageHashMap!=null) {
+
+                Iterator it = messageHashMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<String,FriendlyMessage> msg = (Map.Entry<String, FriendlyMessage>)it.next();
+
+                    if (!dataSnapshot.child(msg.getKey()).exists()) {
+                        FriendlyMessage chat1=msg.getValue();
+                        it.remove();
+                        friendlyMessages.remove(chat1);
+                        Log.d("Messagekey", "not exists");
+                        //do ur stuff
+                    } else {
+                        Log.d("Messagekey", "exists");
+                        //do something if not exists
+                    }
+                }
+                if(mMessageAdapter!=null){
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mMessageAdapter.notifyDataSetChanged();
+                        }
+                    });
+                }
+
+            }
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    };
+
     ChildEventListener messageListener=new ChildEventListener() {
         @Override
-        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+        public void onChildAdded(final DataSnapshot dataSnapshot, String s) {
             // Chat message is retreived.
-
-            FriendlyMessage chat = dataSnapshot.getValue(FriendlyMessage.class);
+            Log.d("firebaseMessage","onchildadded-"+(new Gson().toJson(dataSnapshot.toString())));
+            final FriendlyMessage chat = dataSnapshot.getValue(FriendlyMessage.class);
+            Log.d("firebaseMessage","onchildaddedChat-"+(new Gson().toJson(chat)));
             if(!messageHashMap.containsKey(dataSnapshot.getKey())) {
                 Log.d("messages","key not present");
-                String decrypted=decrypt(chat.getText());
+                final String decrypted=decrypt(chat.getText());
                 if(decrypted!=null) {
-                    chat.setText(decrypted);
-                    messageHashMap.put(dataSnapshot.getKey(), chat);
-                    mMessageAdapter.add(chat);
-                    mMessageAdapter.notifyDataSetChanged();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            chat.setText(decrypted);
+                            messageHashMap.put(dataSnapshot.getKey(), chat);
+                            mMessageAdapter.add(chat);
+                            mMessageAdapter.notifyDataSetChanged();
+                        }
+                    });
+
                 }
+            }else {
+                Log.d("messages","key present-"+(new Gson().toJson(messageHashMap.get(dataSnapshot.getKey()))));
             }
             for (FriendlyMessage msg:messageHashMap.values()
                     ) {
@@ -279,25 +329,34 @@ public class MessageActivity extends AppCompatActivity {
 
         @Override
         public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
+            Log.d("firebaseMessage","onchildChnaged-"+(new Gson().toJson(dataSnapshot.toString())));
         }
 
         @Override
-        public void onChildRemoved(DataSnapshot dataSnapshot) {
+        public void onChildRemoved(final DataSnapshot dataSnapshot) {
+            Log.d("firebaseMessage","onchildremoved-"+(new Gson().toJson(dataSnapshot.toString())));
             if(messageHashMap.containsKey(dataSnapshot.getKey())) {
-                messageHashMap.remove(dataSnapshot.getKey());
-                friendlyMessages.remove(dataSnapshot.getValue());
-                mMessageAdapter.notifyDataSetChanged();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        FriendlyMessage chat1=messageHashMap.remove(dataSnapshot.getKey());
+                        boolean b=friendlyMessages.remove(chat1);
+                        mMessageAdapter.notifyDataSetChanged();
+                    }
+                });
+
             }
         }
 
         @Override
         public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
+            Log.d("firebaseMessage","onchildmoved-"+(new Gson().toJson(dataSnapshot.toString())));
         }
 
         @Override
         public void onCancelled(DatabaseError databaseError) {
+            Log.d("firebaseMessage","oncancelled-"+databaseError.getMessage());
             // Unable to get message.
         }
 
@@ -313,6 +372,7 @@ public class MessageActivity extends AppCompatActivity {
         databaseReference.child("messages")
                 .getRef()
                 .addListenerForSingleValueEvent(new ValueEventListener() {
+
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         if (dataSnapshot.hasChild(room_type_1)) {
@@ -358,11 +418,18 @@ public class MessageActivity extends AppCompatActivity {
                             mMessagesDatabaseReference
                                     .child(room_type_1)
                                     .addChildEventListener(messageListener);
+                            mMessagesDatabaseReference
+                                    .child(room_type_1)
+                                    .addListenerForSingleValueEvent(valueEventListener);
+
                         } else if (dataSnapshot.hasChild(room_type_2)) {
                             Log.e("message", "getMessageFromFirebaseUser: " + room_type_2 + " exists");
                             mMessagesDatabaseReference
                                     .child(room_type_2)
                                     .addChildEventListener(messageListener);
+                            mMessagesDatabaseReference
+                                    .child(room_type_2)
+                                    .addListenerForSingleValueEvent(valueEventListener);
                         } else {
                             Log.e("message", "getMessageFromFirebaseUser: no such room available");
                         }
@@ -407,7 +474,7 @@ public class MessageActivity extends AppCompatActivity {
             String data=gson.toJson(messageHashMap);
             editor.putString(receiverUid,data);
             editor.apply();
-            Log.d("messageListsave","list-"+messageHashMap.toString());
+            Log.d("messageListsave","list-"+(new Gson().toJson(messageHashMap)));
 
         } catch (Exception e) {
             e.printStackTrace();

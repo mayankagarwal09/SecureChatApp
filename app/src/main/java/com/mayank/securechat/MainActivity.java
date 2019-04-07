@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -29,6 +30,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.udacity.friendlychat.R;
+import com.google.gson.Gson;
 
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private ListView mUserListView;
     private MessageAdapter mMessageAdapter;
     private UsersAdapter mUserAdapter;
+    List<User> users=new ArrayList<>();
 
 
     private String mUsername;
@@ -203,19 +206,23 @@ public class MainActivity extends AppCompatActivity {
 
     public void getAllUsersFromFirebase() {
         final String[] myPublic = {null};
+
+        /*
         mUsersDatabaseReference
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         Iterator<DataSnapshot> dataSnapshots = dataSnapshot.getChildren()
                                 .iterator();
-                        List<User> users = new ArrayList<>();
                         while (dataSnapshots.hasNext()) {
                             DataSnapshot dataSnapshotChild = dataSnapshots.next();
                             User user = dataSnapshotChild.getValue(User.class);
                             if (!TextUtils.equals(user.uid,
                                     FirebaseAuth.getInstance().getCurrentUser().getUid())) {
-                                users.add(user);
+                                if(!users.contains(user)) {
+                                    Log.d("onDataChange","usersList-"+(new Gson().toJson(users))+"\nsize-"+users.size());
+                                    users.add(user);
+                                }
                             }else {
                                 myPublic[0] =user.getPublicKey();
                             }
@@ -234,6 +241,61 @@ public class MainActivity extends AppCompatActivity {
                         // Unable to retrieve the users.
                     }
                 });
+                */
+
+        mUsersDatabaseReference.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                User user = dataSnapshot.getValue(User.class);
+                if (!TextUtils.equals(user.uid,
+                        FirebaseAuth.getInstance().getCurrentUser().getUid())) {
+                    if(!users.contains(user)) {
+                        Log.d("childAdded","usersList-"+(new Gson().toJson(users))+"\nsize-"+users.size());
+                        users.add(user);
+                    }
+                }else {
+                    myPublic[0] =user.getPublicKey();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mUserAdapter = new UsersAdapter(MainActivity.this, R.layout.item_user, users);
+                        mUserListView.setAdapter(mUserAdapter);
+                    }
+                });
+
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                User user = dataSnapshot.getValue(User.class);
+                if(users.contains(user)) {
+                    users.remove(user);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(mUserAdapter!=null)
+                                mUserAdapter.notifyDataSetChanged();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
 
         mUserListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

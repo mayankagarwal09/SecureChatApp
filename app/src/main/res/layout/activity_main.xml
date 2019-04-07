@@ -8,28 +8,18 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.google.firebase.udacity.friendlychat.com.mayank.firebase.udacity.friendlychat.MainActivity">
+    tools:context="com.mayank.securechat.MainActivity">
 
-    <ListView
-        android:visibility="gone"
-        android:id="@+id/messageListView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@+id/linearLayout"
-        android:stackFromBottom="true"
-        android:divider="@android:color/transparent"
-        android:transcriptMode="alwaysScroll"
-        tools:listitem="@layout/item_message"/>
+
 
     <ListView
         android:id="@+id/userListView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/linearLayout"
         android:stackFromBottom="false"
         android:divider="@android:color/transparent"
         android:transcriptMode="alwaysScroll"
-        tools:listitem="@layout/item_message"/>
+        tools:listitem="@layout/item_user"/>
 
 
 
