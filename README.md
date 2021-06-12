@@ -1,10 +1,16 @@
-# FriendlyChat
-
-This repository contains code for the FriendlyChat project in the [Firebase in a Weekend: Android by Google](https://www.udacity.com/course/firebase-in-a-weekend-by-google-android--ud0352) Udacity course.
+# SecureChat
 
 ## Overview
 
-FriendlyChat is an app that allows users to send and receive text and photos in realtime across platforms.
+SecureChat is an app that allows users to send and receive text and photos in realtime across platforms with End to End Encryption.
+
+This code is inspired from FriendlyChat project in the [Firebase in a Weekend: Android by Google](https://www.udacity.com/course/firebase-in-a-weekend-by-google-android--ud0352) Udacity course.
+
+
+## Features
+- Fingerprint Lock
+- End to End Encryption
+- Send and Receive Text and Photos
 
 ## Setup
 
